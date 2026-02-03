@@ -380,10 +380,10 @@ function buildType(ref, type) {
             var jsType = toJsType(field, /* parentIsInterface = */ true);
             var nullable = false;
             if (config["strict-types"]) {
-                // With strict types, only explicitly optional fields (hasPresence) are nullable
-                // Non-optional fields are required with exact types
-                // This is useful when you guarantee non-optional fields have default values in the output
-                if (isNullable(field)) {
+                // With strict types, explicitly optional fields (hasPresence) are nullable
+                // repeated and map fields are also optional (can be omitted or null)
+                // Non-optional singular fields are required with exact types
+                if (isNullable(field) || field.repeated || field.map) {
                     jsType = jsType + "|null";
                     nullable = true;
                 }
@@ -437,7 +437,13 @@ function buildType(ref, type) {
         if (config.comments) {
             push("");
             var jsType = toJsType(field, /* parentIsInterface = */ false);
-            if (config["null-semantics"]) {
+            if (config["strict-types"]) {
+                // With strict types, optional, repeated and map fields can be null
+                if (isNullable(field) || field.repeated || field.map) {
+                    jsType = jsType + "|null";
+                }
+            }
+            else if (config["null-semantics"]) {
                 // With semantic nulls, fields are nullable if they are explicitly optional or part of a one-of
                 // Maps, repeated values and fields with implicit defaults are never null after construction
                 // Members are never undefined, at a minimum they are initialized to null
