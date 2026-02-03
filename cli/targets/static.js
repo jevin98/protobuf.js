@@ -379,7 +379,16 @@ function buildType(ref, type) {
             prop = prop.substring(1, prop.charAt(0) === "[" ? prop.length - 1 : prop.length);
             var jsType = toJsType(field, /* parentIsInterface = */ true);
             var nullable = false;
-            if (config["null-semantics"]) {
+            if (config["strict-types"]) {
+                // With strict types, only explicitly optional fields (hasPresence) are nullable
+                // Non-optional fields are required with exact types
+                // This is useful when you guarantee non-optional fields have default values in the output
+                if (isNullable(field)) {
+                    jsType = jsType + "|null";
+                    nullable = true;
+                }
+            }
+            else if (config["null-semantics"]) {
                 // With semantic nulls, only explicit optional fields and one-of members can be set to null
                 // Implicit fields (proto3), maps and lists can be omitted, but if specified must be non-null
                 // Implicit fields will take their default value when the message is constructed

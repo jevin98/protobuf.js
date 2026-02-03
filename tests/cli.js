@@ -548,3 +548,115 @@ message OptionalFields {
         });
     });
 });
+
+tape.test("pbts generates .d.ts with I prefix for interfaces", function(test) {
+    cliTest(test, function() {
+        var root = protobuf.loadSync("tests/data/cli/test.proto");
+        root.resolveAll();
+
+        var staticTarget = require("../cli/targets/static");
+
+        staticTarget(root, {
+            create: true,
+            decode: true,
+            encode: true,
+            convert: true,
+            comments: true,
+        }, function(err, jsCode) {
+            test.error(err, 'static code generation worked');
+
+            // Write the generated JS to a temporary file
+            var os = require("os");
+            var tmpFile = path.join(os.tmpdir(), "pbts-test-" + Date.now() + ".js");
+            fs.writeFileSync(tmpFile, jsCode);
+
+            // Run pbts to generate .d.ts
+            var pbts = require("../cli/pbts");
+            pbts.main([tmpFile], function(err, dtsCode) {
+                // Clean up temp file
+                try { fs.unlinkSync(tmpFile); } catch(e) {/**/}
+
+                test.error(err, 'pbts generation worked');
+
+                // Verify that interfaces use I prefix
+                test.ok(dtsCode.includes("interface IMessage"), "interface should use I prefix (IMessage)");
+                // OneofContainer is a class that implements an interface
+                test.ok(dtsCode.includes("implements IOneofContainer"), "class should implement I-prefixed interface (IOneofContainer)");
+                test.ok(dtsCode.includes("implements IMessage"), "class should implement I-prefixed interface (IMessage)");
+
+                // Verify that type references also use I prefix
+                test.ok(/IMessage/.test(dtsCode), "type references should use I prefix");
+
+                test.end();
+            });
+        });
+    });
+});
+
+tape.test("with --strict-types in proto2, explicit optional fields are nullable, required fields are exact", function(test) {
+    cliTest(test, function() {
+        var root = protobuf.loadSync("tests/data/cli/null-defaults.proto");
+        root.resolveAll();
+
+        var staticTarget = require("../cli/targets/static");
+
+        staticTarget(root, {
+            create: true,
+            decode: true,
+            encode: true,
+            convert: true,
+            comments: true,
+            "strict-types": true,
+        }, function(err, jsCode) {
+            test.error(err, 'static code generation worked');
+
+            // Property 'a' (optional submessage) should be optional with |null
+            test.ok(jsCode.includes("@property {OptionalFields.ISubMessage|null} [a] OptionalFields a"), "Property for a should be optional with |null");
+            
+            // Property 'b' (optional string) should be optional with |null
+            test.ok(jsCode.includes("@property {string|null} [b] OptionalFields b"), "Property for b should be optional with |null");
+            
+            // Property 'c' (optional number) should be optional with |null
+            test.ok(jsCode.includes("@property {number|null} [c] OptionalFields c"), "Property for c should be optional with |null");
+            
+            // Property 'd' (required number) should be required with exact type
+            test.ok(jsCode.includes("@property {number} d OptionalFields d"), "Property for d should be required with exact type");
+
+            test.end();
+        });
+    });
+});
+
+tape.test("with --strict-types in proto3, explicit optional fields are nullable, implicit fields are exact", function(test) {
+    cliTest(test, function() {
+        var root = protobuf.loadSync("tests/data/cli/null-defaults-proto3.proto");
+        root.resolveAll();
+
+        var staticTarget = require("../cli/targets/static");
+
+        staticTarget(root, {
+            create: true,
+            decode: true,
+            encode: true,
+            convert: true,
+            comments: true,
+            "strict-types": true,
+        }, function(err, jsCode) {
+            test.error(err, 'static code generation worked');
+
+            // Property 'a' (explicit optional submessage) should be optional with |null
+            test.ok(jsCode.includes("@property {OptionalFields.ISubMessage|null} [a] OptionalFields a"), "Property for a should be optional with |null");
+            
+            // Property 'b' (explicit optional string) should be optional with |null
+            test.ok(jsCode.includes("@property {string|null} [b] OptionalFields b"), "Property for b should be optional with |null");
+            
+            // Property 'c' (explicit optional number) should be optional with |null
+            test.ok(jsCode.includes("@property {number|null} [c] OptionalFields c"), "Property for c should be optional with |null");
+            
+            // Property 'd' (implicit number, no optional keyword) should be required with exact type
+            test.ok(jsCode.includes("@property {number} d OptionalFields d"), "Property for d should be required with exact type");
+
+            test.end();
+        });
+    });
+});

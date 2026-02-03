@@ -41,7 +41,7 @@ exports.main = function main(args, callback) {
             "force-message": "strict-message"
         },
         string: [ "target", "out", "path", "wrap", "dependency", "root", "lint", "filter" ],
-        boolean: [ "create", "encode", "decode", "verify", "convert", "delimited", "typeurl", "beautify", "comments", "service", "es6", "sparse", "keep-case", "alt-comment", "force-long", "force-number", "force-enum-string", "force-message", "null-defaults", "null-semantics"],
+        boolean: [ "create", "encode", "decode", "verify", "convert", "delimited", "typeurl", "beautify", "comments", "service", "es6", "sparse", "keep-case", "alt-comment", "force-long", "force-number", "force-enum-string", "force-message", "null-defaults", "null-semantics", "strict-types"],
         default: {
             target: "json",
             create: true,
@@ -63,7 +63,8 @@ exports.main = function main(args, callback) {
             "force-enum-string": false,
             "force-message": false,
             "null-defaults": false,
-            "null-semantics": false
+            "null-semantics": false,
+            "strict-types": false
         }
     });
 
@@ -150,6 +151,7 @@ exports.main = function main(args, callback) {
                 "",
                 "  --null-defaults  Default value for optional fields is null instead of zero value.",
                 "  --null-semantics Make nullable fields match protobuf semantics (overrides --null-defaults).",
+                "  --strict-types   All interface fields are required with exact types (no null/undefined).",
                 "",
                 "usage: " + chalk.bold.green("pbjs") + " [options] file1.proto file2.json ..." + chalk.gray("  (or pipe)  ") + "other | " + chalk.bold.green("pbjs") + " [options] -",
                 ""
